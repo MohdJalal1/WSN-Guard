@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WSN IDS Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- DataTables -->
+  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #0b1120;
+      color: #e5e7eb;
+    }
+    .card {
+      background-color: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+    }
+    .plot-container {
+      background-color: #020617;
+      border-radius: 8px;
+      padding: 1rem;
+      height: 420px;
+    }
+    .table thead {
+      background-color: #1f2937;
+    }
+    .table tbody tr:hover {
+      background-color: #020617;
+    }
+  </style>
+</head>
+
+<body>
+
+<nav class="navbar navbar-dark bg-dark mb-4">
+  <div class="container-fluid">
+    <span class="navbar-brand">🚀 WSN IDS Dashboard</span>
+  </div>
+</nav>
+
+<div class="container-fluid">
+
+  <!-- METRICS -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+      <div class="card text-center p-3">
+        <h6 class="text-secondary">Total Records</h6>
+        <h3>{{ total_rows }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="card text-center p-3">
+        <h6 class="text-secondary">Features</h6>
+        <h3>{{ num_features }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="card text-center p-3">
+        <h6 class="text-secondary">Normal</h6>
+        <h3 class="text-success">{{ num_normal }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="card text-center p-3">
+        <h6 class="text-secondary">Attacks</h6>
+        <h3 class="text-danger">{{ num_attack }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h5>Class Distribution</h5>
+        <div id="class-dist" class="plot-container d-flex justify-content-center align-items-center">
+          <div class="spinner-border text-light"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h5>After SMOTE</h5>
+        <div id="class-dist-bal" class="plot-container d-flex justify-content-center align-items-center">
+          <div class="spinner-border text-light"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card p-3 mb-5">
+    <h5>Training Data Sample</h5>
+    <div class="table-responsive">
+      <table id="training-data-table" class="table table-striped table-bordered">
+        {{ table_html | safe }}
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- SAFE JSON INJECTION -->
+<script id="graph-data" type="application/json">
+  {{ graphJSON | tojson }}
+</script>
+
+<script id="graph-bal-data" type="application/json">
+  {{ graphBalJSON | tojson }}
+</script>
+
+<!-- LIBRARIES -->
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+
+<!-- MAIN SCRIPT -->
+<script>
+  // Parse JSON safely
+  const graphData = JSON.parse(document.getElementById("graph-data").textContent || "{}");
+  const graphBalData = JSON.parse(document.getElementById("graph-bal-data").textContent || "{}");
+
+  const darkLayout = {
+    paper_bgcolor: "#020617",
+    plot_bgcolor: "#020617",
+    font: { color: "#e5e7eb" }
+  };
+
+  // Plot 1
+  if (graphData.data) {
+    Plotly.newPlot('class-dist', graphData.data, darkLayout, { responsive: true });
+  } else {
+    document.getElementById('class-dist').innerHTML = "No Data";
+  }
+
+  // Plot 2
+  if (graphBalData.data) {
+    Plotly.newPlot('class-dist-bal', graphBalData.data, darkLayout, { responsive: true });
+  } else {
+    document.getElementById('class-dist-bal').innerHTML = "No Data";
+  }
+
+  // DataTable
+  $(document).ready(function () {
+    $('#training-data-table').DataTable({
+      pageLength: 25,
+      scrollX: true,
+      responsive: true,
+      dom: 'Bfrtip',
+      buttons: [
+        { extend: 'csv', className: 'btn btn-outline-light btn-sm' },
+        { extend: 'excel', className: 'btn btn-outline-light btn-sm' },
+        { extend: 'print', className: 'btn btn-outline-light btn-sm' }
+      ]
+    });
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
